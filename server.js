@@ -1,7 +1,12 @@
-const express = require('express');
-const instagramGetUrl = require("instagram-url-direct");
+const express = require("express");
+const puppeteer = require('puppeteer');
+const app = express();
+const cors = require("cors");
+app.use(express.json());
+app.use(cors());
+const axios = require("axios");
+const cheerio = require("cheerio");
 const bodyParser = require('body-parser');
-let app = express();
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -10,27 +15,27 @@ app.listen(3000, () => {
     console.log('Igdl is up.')
 })
 
-app.post('/api/ig/download', async (req, res) => {
+async function getVideo(url) {
+  const launch = await puppeteer.launch();
+  const page = await launch.newPage();
+  await page.goto(url);
+  setTimeout(async () => {
+    let src = await page.$eval("video", n => n.getAttribute("src"))
+    console.log(src);
+    res.header('Content-Disposition', 'attachment; filename="' + new Date() + ' - Fizzy.mp4"');
+    res.write(src, 'binary');
+    res.end();
+    await launch.close();
+  }, 3000)
+}
+
+app.post("/api/ig/download", async (req, res) => {
   try {
-    if (req.body.url.startsWith('https://instagram.com/') || req.body.url.startsWith('http://instagram.com/') || req.body.url.startsWith('http://www.instagram.com/') || req.body.url.startsWith('https://www.instagram.com/')) {
-      const links = await instagramGetUrl(req.body.url)
-      if (req.body.type == 'mp4') {
-        res.redirect(links.url_list[0])
-      } else {
-        if (req.body.type == 'mp3') {
-          res.header('Content-Disposition', 'attachment; filename="' + new Date() + '- Fizzy.mp3"');
-          res.write(links.url_list[0], 'binary');
-          res.end();
-        }
-      }
-    } else {
-      res.json({ error: 'Not found', status: 404 })
-    }
+    getVideo(req.body.url);
+  } catch (err) {
+    console.error(err)
   }
-  catch (err) {
-    res.json({ error: err, status: 500 })
-  }
-})
+});
 
 app.get('*', (req, res) => {
     res.json({ error: 'Not found', status: 404 })    
