@@ -16,7 +16,8 @@ app.listen(3000, () => {
 })
 
 async function getVideo(url) {
-  const launch = await puppeteer.launch();
+  try{
+  const launch = await puppeteer.launch({ headless: false, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
   const page = await launch.newPage();
   await page.goto(url);
   setTimeout(async () => {
@@ -27,6 +28,10 @@ async function getVideo(url) {
     res.end();
     await launch.close();
   }, 3000)
+  }
+  catch(err){
+    console.error(err)
+  }
 }
 
 app.post("/api/ig/download", async (req, res) => {
